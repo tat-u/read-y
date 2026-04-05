@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { ref } from "vue";
+
 import { Readability } from "@mozilla/readability";
 import TurndownService from "turndown";
+
+const copied = ref(false);
 
 const getCurrentTab = async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -8,16 +12,16 @@ const getCurrentTab = async () => {
 };
 
 const getOuterHTMLInTab = async (tabId: number) => {
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => document.documentElement.outerHTML,
-    });
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => document.documentElement.outerHTML,
+  });
 
-    if (!result || !result.result) {
-      throw new Error("No result from script execution.");
-    }
+  if (!result || !result.result) {
+    throw new Error("No result from script execution.");
+  }
 
-    return result.result;
+  return result.result;
 };
 
 const copyToClipboard = async () => {
@@ -50,16 +54,24 @@ const copyToClipboard = async () => {
   const turndownService = new TurndownService();
   const markdown = turndownService.turndown(readable.content);
 
+  // --- Side Effects ---
+
   navigator.clipboard.writeText(markdown);
+  copied.value = true;
+  setTimeout(() => {
+    copied.value = false;
+  }, 3000);
 };
 </script>
 
 <template>
   <h1>Read-y</h1>
   <p>Click to copy the document in the current tab to clipboard.</p>
-  <button @click="copyToClipboard">Copy</button>
+  <button @click="copyToClipboard">
+    <span v-if="!copied">Copy</span>
+    <span v-else>Copied!</span>
+  </button>
 
-  <!-- TODO: Add feedback to the user after copying -->
   <!-- TODO: Add size of the copied content to the feedback -->
   <!-- TODO: Add Custom Selector (user input) for content extraction -->
 </template>
