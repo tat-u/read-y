@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { Readability } from "@mozilla/readability";
+import TurndownService from "turndown";
+
 const getCurrentTab = async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
@@ -36,8 +39,23 @@ const copyToClipboard = async () => {
 
   const outerHTML = await getOuterHTMLInTab(tab.id);
 
-  // TODO: Process the outerHTML into a more readable format before copying to clipboard
-  navigator.clipboard.writeText(outerHTML);
+  // --- Process the Outer HTML with Readability and Turndown ---
+
+  const restoredDocument = new DOMParser().parseFromString(
+    outerHTML,
+    "text/html",
+  );
+  const readable = new Readability(restoredDocument).parse(); // NOTE: destructive; parse() **modifies** the document
+
+  if (!readable || !readable.content) {
+    console.error("Failed to parse content with Readability.");
+    throw new Error("Failed to parse content with Readability.");
+  }
+
+  const turndownService = new TurndownService();
+  const markdown = turndownService.turndown(readable.content);
+
+  navigator.clipboard.writeText(markdown);
 };
 </script>
 
@@ -47,6 +65,8 @@ const copyToClipboard = async () => {
   <button @click="copyToClipboard">Copy</button>
 
   <!-- TODO: Add feedback to the user after copying -->
+  <!-- TODO: Add size of the copied content to the feedback -->
+  <!-- TODO: Add Custom Selector (user input) for content extraction -->
 </template>
 
 <style scoped></style>
