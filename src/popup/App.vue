@@ -59,7 +59,6 @@ const copyToClipboard = async () => {
   const tab = await getCurrentTab();
 
   if (!tab || !tab.id) {
-    console.error("Failed to get current tab.");
     throw new Error("Failed to get current tab.");
   }
 
