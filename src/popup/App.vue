@@ -6,6 +6,7 @@ import TurndownService from "turndown";
 
 const copied = ref(false);
 const size = ref(0);
+const customSelector = ref("");
 
 const getCurrentTab = async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -25,6 +26,33 @@ const getOuterHTMLInTab = async (tabId: number) => {
   return result.result;
 };
 
+const processOuterHTML = (outerHTML: string) => {
+  const restoredDocument = new DOMParser().parseFromString(
+    outerHTML,
+    "text/html",
+  );
+
+  if (customSelector.value.length > 0) {
+    const element = restoredDocument.querySelector(customSelector.value);
+
+    if (!element) {
+      throw new Error("No element found for the provided custom selector.");
+    }
+
+    const turndownService = new TurndownService();
+    return turndownService.turndown(element.outerHTML);
+  } else {
+    const readable = new Readability(restoredDocument).parse(); // NOTE: destructive; parse() **modifies** the document
+
+    if (!readable || !readable.content) {
+      throw new Error("Failed to parse content with Readability.");
+    }
+
+    const turndownService = new TurndownService();
+    return turndownService.turndown(readable.content);
+  }
+};
+
 const copyToClipboard = async () => {
   // --- Get Current Tab ---
 
@@ -41,19 +69,7 @@ const copyToClipboard = async () => {
 
   // --- Process the Outer HTML with Readability and Turndown ---
 
-  const restoredDocument = new DOMParser().parseFromString(
-    outerHTML,
-    "text/html",
-  );
-  const readable = new Readability(restoredDocument).parse(); // NOTE: destructive; parse() **modifies** the document
-
-  if (!readable || !readable.content) {
-    console.error("Failed to parse content with Readability.");
-    throw new Error("Failed to parse content with Readability.");
-  }
-
-  const turndownService = new TurndownService();
-  const markdown = turndownService.turndown(readable.content);
+  const markdown = processOuterHTML(outerHTML);
 
   // --- Side Effects ---
 
@@ -68,16 +84,31 @@ const copyToClipboard = async () => {
 
 <template>
   <h1>Read-y</h1>
+
   <p>Click to copy the document in the current tab to clipboard.</p>
   <button @click="copyToClipboard">
     <span v-if="!copied">Copy</span>
     <span v-else>Copied!</span>
   </button>
+
+  <p>If needed, you can specify a custom selector for content extraction.</p>
+  <div class="custom-selector-container">
+    <input type="text" placeholder="Custom Selector" v-model="customSelector" />
+    <button @click="customSelector = ''">Clear</button>
+  </div>
+
   <div>
     <div>Chars copied: {{ size }}</div>
   </div>
-
-  <!-- TODO: Add Custom Selector (user input) for content extraction -->
 </template>
 
-<style scoped></style>
+<style scoped>
+.custom-selector-container {
+  display: flex;
+  gap: 1rem;
+
+  input {
+    flex: 1;
+  }
+}
+</style>
