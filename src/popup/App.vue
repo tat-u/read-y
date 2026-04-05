@@ -1,36 +1,52 @@
 <script setup lang="ts">
-import HelloWorld from '@/components/HelloWorld.vue'
+const getCurrentTab = async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab;
+};
+
+const getOuterHTMLInTab = async (tabId: number) => {
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => document.documentElement.outerHTML,
+    });
+
+    if (!result || !result.result) {
+      throw new Error("No result from script execution.");
+    }
+
+    return result.result;
+  } catch (error) {
+    console.error("Failed to access tab content:", error);
+    throw error;
+  }
+};
+
+const copyToClipboard = async () => {
+  // --- Get Current Tab ---
+
+  const tab = await getCurrentTab();
+
+  if (!tab || !tab.id) {
+    console.error("Failed to get current tab.");
+    throw new Error("Failed to get current tab.");
+  }
+
+  // --- Get Outer HTML in Current Tab ---
+
+  const outerHTML = await getOuterHTMLInTab(tab.id);
+
+  // TODO: Process the outerHTML into a more readable format before copying to clipboard
+  navigator.clipboard.writeText(outerHTML);
+};
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="@/assets/vite.svg" class="logo" alt="Vite logo">
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="@/assets/vue.svg" class="logo vue" alt="Vue logo">
-    </a>
-    <a href="https://crxjs.dev/vite-plugin" target="_blank">
-      <img src="@/assets/crx.svg" class="logo crx" alt="crx logo">
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue + CRXJS" />
+  <h1>Read-y</h1>
+  <p>Click to copy the document in the current tab to clipboard.</p>
+  <button @click="copyToClipboard">Copy</button>
+
+  <!-- TODO: Add feedback to the user after copying -->
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-.logo.crx:hover {
-  filter: drop-shadow(0 0 2em #f2bae4aa);
-}
-</style>
+<style scoped></style>
