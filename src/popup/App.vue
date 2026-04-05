@@ -4,6 +4,11 @@ import { ref } from "vue";
 import { Readability } from "@mozilla/readability";
 import TurndownService from "turndown";
 
+const TURNDOWN_OPTIONS = {
+  headingStyle: "atx",
+  codeBlockStyle: "fenced",
+} as const;
+
 const copied = ref(false);
 const size = ref(0);
 const customSelector = ref("");
@@ -39,7 +44,7 @@ const processOuterHTML = (outerHTML: string) => {
       throw new Error("No element found for the provided custom selector.");
     }
 
-    const turndownService = new TurndownService();
+    const turndownService = new TurndownService(TURNDOWN_OPTIONS);
     return turndownService.turndown(element.outerHTML);
   } else {
     const readable = new Readability(restoredDocument).parse(); // NOTE: destructive; parse() **modifies** the document
@@ -48,7 +53,7 @@ const processOuterHTML = (outerHTML: string) => {
       throw new Error("Failed to parse content with Readability.");
     }
 
-    const turndownService = new TurndownService();
+    const turndownService = new TurndownService(TURNDOWN_OPTIONS);
     return turndownService.turndown(readable.content);
   }
 };
