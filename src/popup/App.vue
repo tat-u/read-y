@@ -5,6 +5,7 @@ import { Readability } from "@mozilla/readability";
 import TurndownService from "turndown";
 
 const copied = ref(false);
+const size = ref(0);
 
 const getCurrentTab = async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -61,6 +62,7 @@ const copyToClipboard = async () => {
   setTimeout(() => {
     copied.value = false;
   }, 3000);
+  size.value = markdown.length;
 };
 </script>
 
@@ -71,8 +73,10 @@ const copyToClipboard = async () => {
     <span v-if="!copied">Copy</span>
     <span v-else>Copied!</span>
   </button>
+  <div>
+    <div>Chars copied: {{ size }}</div>
+  </div>
 
-  <!-- TODO: Add size of the copied content to the feedback -->
   <!-- TODO: Add Custom Selector (user input) for content extraction -->
 </template>
 
