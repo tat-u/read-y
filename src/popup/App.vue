@@ -38,27 +38,42 @@ const processOuterHTML = (outerHTML: string) => {
     "text/html",
   );
 
-  if (customSelector.value.length > 0) {
-    const element = restoredDocument.querySelector(customSelector.value);
+  if (customSelector.value.length === 0) {
+    // ===== Automatic(Readability) Flow =====
 
-    if (!element) {
-      throw new Error("No element found for the provided custom selector.");
-    }
+    // --- 1. Select and Clip Target Element ---
 
-    const $ = cheerio.load(element.outerHTML);
-    $("img, script").remove();
-
-    const turndownService = new TurndownService(TURNDOWN_OPTIONS);
-    return turndownService.turndown($.html());
-  } else {
     const readable = new Readability(restoredDocument).parse(); // NOTE: destructive; parse() **modifies** the document
 
     if (!readable || !readable.content) {
       throw new Error("Failed to parse content with Readability.");
     }
 
+    // --- 2. Prune Unwanted Elements ---
+
     const $ = cheerio.load(readable.content);
     $("img, script").remove();
+
+    // --- 3. Convert to Markdown ---
+
+    const turndownService = new TurndownService(TURNDOWN_OPTIONS);
+    return turndownService.turndown($.html());
+  } else {
+    // ===== Custom Selector Flow =====
+
+    // --- 1. Select and Clip Target Element ---
+    const element = restoredDocument.querySelector(customSelector.value);
+
+    if (!element) {
+      throw new Error("No element found for the provided custom selector.");
+    }
+
+    // --- 2. Prune Unwanted Elements ---
+
+    const $ = cheerio.load(element.outerHTML);
+    $("img, script").remove();
+
+    // --- 3. Convert to Markdown ---
 
     const turndownService = new TurndownService(TURNDOWN_OPTIONS);
     return turndownService.turndown($.html());
