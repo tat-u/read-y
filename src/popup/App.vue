@@ -2,6 +2,7 @@
 import { ref } from "vue";
 
 import { Readability } from "@mozilla/readability";
+import * as cheerio from "cheerio";
 import TurndownService from "turndown";
 
 const TURNDOWN_OPTIONS = {
@@ -44,8 +45,11 @@ const processOuterHTML = (outerHTML: string) => {
       throw new Error("No element found for the provided custom selector.");
     }
 
+    const $ = cheerio.load(element.outerHTML);
+    $("img, script").remove();
+
     const turndownService = new TurndownService(TURNDOWN_OPTIONS);
-    return turndownService.turndown(element.outerHTML);
+    return turndownService.turndown($.html());
   } else {
     const readable = new Readability(restoredDocument).parse(); // NOTE: destructive; parse() **modifies** the document
 
@@ -53,8 +57,11 @@ const processOuterHTML = (outerHTML: string) => {
       throw new Error("Failed to parse content with Readability.");
     }
 
+    const $ = cheerio.load(readable.content);
+    $("img, script").remove();
+
     const turndownService = new TurndownService(TURNDOWN_OPTIONS);
-    return turndownService.turndown(readable.content);
+    return turndownService.turndown($.html());
   }
 };
 
