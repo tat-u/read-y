@@ -8,7 +8,6 @@ const getCurrentTab = async () => {
 };
 
 const getOuterHTMLInTab = async (tabId: number) => {
-  try {
     const [result] = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => document.documentElement.outerHTML,
@@ -19,10 +18,6 @@ const getOuterHTMLInTab = async (tabId: number) => {
     }
 
     return result.result;
-  } catch (error) {
-    console.error("Failed to access tab content:", error);
-    throw error;
-  }
 };
 
 const copyToClipboard = async () => {
